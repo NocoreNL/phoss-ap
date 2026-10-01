@@ -62,8 +62,6 @@ import com.helger.phase4.dynamicdiscovery.Phase4SMPException;
 import com.helger.phase4.logging.Phase4LogCustomizer;
 import com.helger.phase4.model.message.MessageHelperMethods;
 import com.helger.phase4.peppol.Phase4PeppolSender;
-import com.helger.phase4.peppol.Phase4PeppolSender.PeppolUserMessageBuilder;
-import com.helger.phase4.peppol.Phase4PeppolSender.PeppolUserMessageSBDHBuilder;
 import com.helger.phase4.peppol.Phase4PeppolSendingReport;
 import com.helger.phase4.profile.peppol.Phase4PeppolHttpClientSettings;
 import com.helger.phase4.sender.EAS4UserMessageSendResult;
@@ -1183,8 +1181,7 @@ public final class OutboundOrchestrator
           // back to the default SPID receiver
           if (aLookupResult.state () == ESmpLookupState.NOT_REGISTERED &&
               aEffectiveMlsFallback != null &&
-              !aEffectiveReceiverID.getURIEncoded ()
-                                   .equals (aEffectiveMlsFallback.getFallbackReceiverID ().getURIEncoded ()))
+              !aEffectiveReceiverID.hasSameContent (aEffectiveMlsFallback.getFallbackReceiverID ()))
           {
             LOGGER.warn (sRealLogPrefix +
                          "The custom MLS receiver '" +
@@ -1270,6 +1267,7 @@ public final class OutboundOrchestrator
             aSendingReport.setAS4MessageID (sAS4MessageID);
             aSendingReport.setAS4SendingDT (aAS4Timestamp);
 
+            // In Peppol the AS4 Conversation ID has no specific meaning, so no need to pass that in
             final String sAS4ConversationID = MessageHelperMethods.createRandomConversationID ();
             aSendingReport.setAS4ConversationID (sAS4ConversationID);
 
@@ -1293,38 +1291,38 @@ public final class OutboundOrchestrator
               {
                 case PAYLOAD_ONLY:
                 {
-                  final PeppolUserMessageBuilder aBuilder;
-                  aBuilder = Phase4PeppolSender.builder ()
-                                               .httpClientFactory (aHCS)
-                                               // AS4 input
-                                               .messageID (sAS4MessageID)
-                                               .conversationID (sAS4ConversationID)
-                                               .sendingDateTime (aAS4Timestamp)
-                                               // Peppol IDs
-                                               .senderParticipantID (aSenderID)
-                                               .receiverParticipantID (aEffectiveReceiverID)
-                                               .documentTypeID (aDocTypeID)
-                                               .processID (aProcessID)
-                                               .countryC1 (aTx.getC1CountryCode ())
-                                               .senderPartyID (sC2SeatID)
-                                               .sbdhInstanceIdentifier (aTx.getSbdhInstanceID ())
-                                               // Certificate stuff
-                                               .peppolAP_CAChecker (aAPCAChecker)
-                                               .endpointDetailProvider (new AS4EndpointDetailProviderConstant (aReceiverCert,
-                                                                                                               sReceiverAPURL,
-                                                                                                               sReceiverTechnicalContact))
-                                               .certificateConsumer ((aAPCertificate, aCheckDT, eCertCheckResult) -> {
-                                                 // Take specifically the
-                                                 // AP certificate
-                                                 // verification
-                                                 aSendingReport.setC3CertCheckDT (aCheckDT);
-                                                 aSendingReport.setC3CertCheckResult (eCertCheckResult);
-                                               })
-                                               // Response stuff
-                                               .rawResponseConsumer (aSendingReport::setRawHttpResponse)
-                                               .signalMsgConsumer ((aSignalMsg, aMessageMetadata, aState) -> {
-                                                 aSendingReport.setAS4ReceivedSignalMsg (aSignalMsg);
-                                               });
+                  final var aBuilder = Phase4PeppolSender.builder ()
+                                                         .httpClientFactory (aHCS)
+                                                         // AS4 input
+                                                         .messageID (sAS4MessageID)
+                                                         .conversationID (sAS4ConversationID)
+                                                         .sendingDateTime (aAS4Timestamp)
+                                                         // Peppol IDs
+                                                         .senderParticipantID (aSenderID)
+                                                         .receiverParticipantID (aEffectiveReceiverID)
+                                                         .documentTypeID (aDocTypeID)
+                                                         .processID (aProcessID)
+                                                         .countryC1 (aTx.getC1CountryCode ())
+                                                         .senderPartyID (sC2SeatID)
+                                                         .sbdhInstanceIdentifier (aTx.getSbdhInstanceID ())
+                                                         // Certificate stuff
+                                                         .peppolAP_CAChecker (aAPCAChecker)
+                                                         .endpointDetailProvider (new AS4EndpointDetailProviderConstant (aReceiverCert,
+                                                                                                                         sReceiverAPURL,
+                                                                                                                         sReceiverTechnicalContact))
+                                                         .certificateConsumer ((aAPCertificate,
+                                                                                aCheckDT,
+                                                                                eCertCheckResult) -> {
+                                                           // Take specifically the AP certificate
+                                                           // verification
+                                                           aSendingReport.setC3CertCheckDT (aCheckDT);
+                                                           aSendingReport.setC3CertCheckResult (eCertCheckResult);
+                                                         })
+                                                         // Response stuff
+                                                         .rawResponseConsumer (aSendingReport::setRawHttpResponse)
+                                                         .signalMsgConsumer ((aSignalMsg, aMessageMetadata, aState) -> {
+                                                           aSendingReport.setAS4ReceivedSignalMsg (aSignalMsg);
+                                                         });
 
                   // Add the optional SBDH parameters required for e.g. PDF sending
                   if (StringHelper.isNotEmpty (aTx.getSbdhStandard ()))
@@ -1445,38 +1443,33 @@ public final class OutboundOrchestrator
                     }
                   }
 
-                  final PeppolUserMessageSBDHBuilder aBuilder = Phase4PeppolSender.sbdhBuilder ()
-                                                                                  .httpClientFactory (aHCS)
-                                                                                  // AS4 input
-                                                                                  .messageID (sAS4MessageID)
-                                                                                  .conversationID (sAS4ConversationID)
-                                                                                  .sendingDateTime (aAS4Timestamp)
-                                                                                  // SBD
-                                                                                  .payloadAndMetadata (aSbdData)
-                                                                                  // Remaining IDs
-                                                                                  .senderPartyID (sC2SeatID)
-                                                                                  // Certificate
-                                                                                  // stuff
-                                                                                  .peppolAP_CAChecker (aAPCAChecker)
-                                                                                  .endpointDetailProvider (new AS4EndpointDetailProviderConstant (aReceiverCert,
-                                                                                                                                                  sReceiverAPURL,
-                                                                                                                                                  sReceiverTechnicalContact))
-                                                                                  .certificateConsumer ((aAPCertificate,
-                                                                                                         aCheckDT,
-                                                                                                         eCertCheckResult) -> {
-                                                                                    // Determined by
-                                                                                    // SMP
-                                                                                    // lookup
-                                                                                    aSendingReport.setC3CertCheckDT (aCheckDT);
-                                                                                    aSendingReport.setC3CertCheckResult (eCertCheckResult);
-                                                                                  })
-                                                                                  // Response stuff
-                                                                                  .rawResponseConsumer (aSendingReport::setRawHttpResponse)
-                                                                                  .signalMsgConsumer ((aSignalMsg,
-                                                                                                       aMessageMetadata,
-                                                                                                       aState) -> {
-                                                                                    aSendingReport.setAS4ReceivedSignalMsg (aSignalMsg);
-                                                                                  });
+                  final var aBuilder = Phase4PeppolSender.sbdhBuilder ()
+                                                         .httpClientFactory (aHCS)
+                                                         // AS4 input
+                                                         .messageID (sAS4MessageID)
+                                                         .conversationID (sAS4ConversationID)
+                                                         .sendingDateTime (aAS4Timestamp)
+                                                         // SBD
+                                                         .payloadAndMetadata (aSbdData)
+                                                         // Remaining IDs
+                                                         .senderPartyID (sC2SeatID)
+                                                         // Certificate stuff
+                                                         .peppolAP_CAChecker (aAPCAChecker)
+                                                         .endpointDetailProvider (new AS4EndpointDetailProviderConstant (aReceiverCert,
+                                                                                                                         sReceiverAPURL,
+                                                                                                                         sReceiverTechnicalContact))
+                                                         .certificateConsumer ((aAPCertificate,
+                                                                                aCheckDT,
+                                                                                eCertCheckResult) -> {
+                                                           // Determined by SMP lookup
+                                                           aSendingReport.setC3CertCheckDT (aCheckDT);
+                                                           aSendingReport.setC3CertCheckResult (eCertCheckResult);
+                                                         })
+                                                         // Response stuff
+                                                         .rawResponseConsumer (aSendingReport::setRawHttpResponse)
+                                                         .signalMsgConsumer ((aSignalMsg, aMessageMetadata, aState) -> {
+                                                           aSendingReport.setAS4ReceivedSignalMsg (aSignalMsg);
+                                                         });
                   eResult = Telemetry.withSpan (CPhossAPOtel.SPAN_OUTBOUND_AS4_SEND,
                                                 ETelemetrySpanKind.CLIENT,
                                                 aSendSpan -> {
