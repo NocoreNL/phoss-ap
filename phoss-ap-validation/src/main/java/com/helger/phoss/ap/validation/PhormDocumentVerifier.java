@@ -355,7 +355,7 @@ public class PhormDocumentVerifier implements IInboundDocumentVerifierSPI, IOutb
   private static IHasInputStream _storedDocument (@NonNull final IDocumentPayloadManager aDocPayloadMgr,
                                                   @NonNull @Nonempty final String sDocumentPath)
   {
-    return HasInputStream.multiple ( () -> aDocPayloadMgr.openDocumentStreamForRead (sDocumentPath));
+    return HasInputStream.multiple (() -> aDocPayloadMgr.openDocumentStreamForRead (sDocumentPath));
   }
 
   /**
@@ -426,8 +426,8 @@ public class PhormDocumentVerifier implements IInboundDocumentVerifierSPI, IOutb
   }
 
   /**
-   * Invoke the phorm API that {@link #_resolveRequest(IDocumentPayloadManager, String,
-   * IDocumentTypeIdentifier)} selected.
+   * Invoke the phorm API that
+   * {@link #_resolveRequest(IDocumentPayloadManager, String, IDocumentTypeIdentifier)} selected.
    *
    * @param aClient
    *        The shared phorm client. May not be <code>null</code>.

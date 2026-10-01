@@ -39,10 +39,10 @@ import com.helger.base.lang.clazz.ClassHelper;
  * </p>
  * <p>
  * An implementation that holds a resource - typically an HTTP connection pool towards the backend
- * service it asks - may additionally implement {@link AutoCloseable}. Its {@link
- * AutoCloseable#close()} is then invoked on application shutdown. Note that an implementation of
- * both sub-interfaces is loaded once per sub-interface, so it is closed once per instance and must
- * tolerate being closed more than once.
+ * service it asks - may additionally implement {@link AutoCloseable}. Its
+ * {@link AutoCloseable#close()} is then invoked on application shutdown. Note that an
+ * implementation of both sub-interfaces is loaded once per sub-interface, so it is closed once per
+ * instance and must tolerate being closed more than once.
  * </p>
  *
  * @author Philip Helger

@@ -129,11 +129,11 @@ final class PhormClientHolder
     ValueEnforcer.notEmpty (sToken, "Token");
 
     // The common case - the configuration is unchanged and a client is present
-    final PhormClient aExisting = RW_LOCK.readLockedGet ( () -> _isUsable (sBaseURL, sToken) ? s_aClient : null);
+    final PhormClient aExisting = RW_LOCK.readLockedGet (() -> _isUsable (sBaseURL, sToken) ? s_aClient : null);
     if (aExisting != null)
       return aExisting;
 
-    return RW_LOCK.writeLockedGet ( () -> {
+    return RW_LOCK.writeLockedGet (() -> {
       // Another thread may have created a matching client in the meantime
       if (_isUsable (sBaseURL, sToken))
         return s_aClient;
