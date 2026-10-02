@@ -26,7 +26,7 @@
   </parent>
   <groupId>com.helger.phoss.ap</groupId>
   <artifactId>phoss-ap-parent-pom</artifactId>
-  <version>0.13.2-SNAPSHOT</version>
+  <version>0.13.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>phoss-ap-parent-pom</name>
   <description>phoss Peppol Access Point - Parent POM</description>
