@@ -14,4 +14,3 @@ zz
 # Local Grafana testing
 lgtm-container/
 .lgtm-env
-run-lgtm.sh
