@@ -11,6 +11,9 @@ zz
 
 *.p12
 
+# keep the eval-only test keystore fixture (overrides the *.p12 rule above)
+!phoss-ap-core/src/test/resources/eval/*.p12
+
 # Local Grafana testing
 lgtm-container/
 .lgtm-env
