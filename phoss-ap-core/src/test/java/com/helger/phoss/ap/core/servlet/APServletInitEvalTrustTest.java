@@ -18,6 +18,7 @@ import com.helger.peppol.servicedomain.EPeppolNetwork;
 import com.helger.phase4.peppol.servlet.Phase4PeppolDefaultReceiverConfiguration;
 import com.helger.phoss.ap.api.config.APConfigurationProperties;
 import com.helger.security.certificate.ECertificateCheckResult;
+import com.helger.security.certificate.TrustedCAChecker;
 import com.helger.security.revocation.CertificateRevocationCheckerDefaults;
 import com.helger.security.revocation.ERevocationCheckMode;
 
@@ -25,6 +26,7 @@ import com.helger.security.revocation.ERevocationCheckMode;
 public final class APServletInitEvalTrustTest
 {
   private ERevocationCheckMode m_aOldMode;
+  private TrustedCAChecker m_aOldChecker;
 
   private static String evalCaPath ()
   {
@@ -42,6 +44,7 @@ public final class APServletInitEvalTrustTest
   @Before
   public void before ()
   {
+    m_aOldChecker = Phase4PeppolDefaultReceiverConfiguration.getAPCAChecker ();
     m_aOldMode = CertificateRevocationCheckerDefaults.getRevocationCheckMode ();
     CertificateRevocationCheckerDefaults.setRevocationCheckMode (ERevocationCheckMode.NONE);
   }
@@ -50,6 +53,7 @@ public final class APServletInitEvalTrustTest
   public void after ()
   {
     CertificateRevocationCheckerDefaults.setRevocationCheckMode (m_aOldMode);
+    Phase4PeppolDefaultReceiverConfiguration.setAPCAChecker (m_aOldChecker);
     System.clearProperty (APConfigurationProperties.EVAL_TRUSTED_CA_PATH);
   }
 
