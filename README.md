@@ -1,3 +1,5 @@
+> ⚠️ **EVAL-ONLY, NON-CONFORMANT FORK** — see [EVAL-FORK.md](EVAL-FORK.md). Never use against the real Peppol network.
+
 # phoss-ap
 
 <!-- ph-badge-start -->
