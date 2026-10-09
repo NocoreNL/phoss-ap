@@ -44,7 +44,6 @@ import com.helger.mime.CMimeType;
 import com.helger.peppol.reporting.api.PeppolReportingHelper;
 import com.helger.peppol.reporting.api.backend.IPeppolReportingBackendSPI;
 import com.helger.peppol.reporting.api.backend.PeppolReportingBackend;
-import com.helger.peppol.security.PeppolTrustedCA;
 import com.helger.peppol.servicedomain.EPeppolNetwork;
 import com.helger.phase4.config.AS4Configuration;
 import com.helger.phase4.crypto.AS4CryptoFactoryConfiguration;
@@ -71,6 +70,7 @@ import com.helger.phoss.ap.core.SMPClientManager;
 import com.helger.phoss.ap.core.StartupRecovery;
 import com.helger.phoss.ap.core.dump.AS4GroupedExchangeDumper;
 import com.helger.phoss.ap.core.dump.AS4IncomingDumperWithMetadata;
+import com.helger.phoss.ap.core.eval.EvalTrustAnchor;
 import com.helger.phoss.ap.core.job.ArchivalScheduler;
 import com.helger.phoss.ap.core.job.CleanupScheduler;
 import com.helger.phoss.ap.core.job.RetryScheduler;
@@ -262,6 +262,33 @@ public class APServletInit
     MessageHelperMethods.setCustomMessageIDSuffix ("phoss-ap");
   }
 
+  /**
+   * EVAL-AWARE. Resolve the AP CA checker (stock Peppol, or the eval anchor when
+   * {@code eval.trusted-ca.path} is set on a non-production stage), verify the AP certificate, and
+   * publish the checker so the inbound receiver uses the same decision.
+   */
+  static void checkAndRegisterApCaChecker (@NonNull final X509Certificate aAPCert,
+                                           @NonNull final EPeppolNetwork ePeppolStage)
+  {
+    final TrustedCAChecker aAPCAChecker = EvalTrustAnchor.resolveApCaChecker (APCoreConfig.getEvalTrustedCaPath (),
+                                                                             ePeppolStage);
+    final ECertificateCheckResult eCheckResult = aAPCAChecker.checkCertificate (aAPCert,
+                                                                                MetaAS4Manager.getTimestampMgr ()
+                                                                                              .getCurrentDateTime (),
+                                                                                ETriState.FALSE,
+                                                                                null);
+    if (eCheckResult.isInvalid ())
+    {
+      if (!"true".equals (System.getProperty ("phossap.internal.skip-peppol-certificate-check")))
+        throw new InitializationException ("The provided certificate is not a Peppol AP certificate. Check result: " +
+                                           eCheckResult);
+      LOGGER.error ("No Peppol certificate present - skipping for unit test only!");
+    }
+    LOGGER.info ("Successfully checked that the provided Peppol AP certificate is from the correct CA");
+    // Must be set independent of the enabled/disabled status
+    Phase4PeppolDefaultReceiverConfiguration.setAPCAChecker (aAPCAChecker);
+  }
+
   private static void _initPeppolAS4 ()
   {
     // Configure global custom DNS servers for Peppol NAPTR lookup if provided
@@ -316,33 +343,9 @@ public class APServletInit
     if (ePeppolStage == null)
       throw new InitializationException ("The Peppol Stage configuration is missing or invalid");
 
-    // Check if the private key is a proper Peppol AP certificate
+    // Check if the private key is a proper (or eval-configured) Peppol AP certificate
     final X509Certificate aAPCert = (X509Certificate) aPKE.getCertificate ();
-    {
-      final TrustedCAChecker aAPCAChecker = ePeppolStage.isProduction () ? PeppolTrustedCA.peppolProductionAP ()
-                                                                         : PeppolTrustedCA.peppolTestAP ();
-
-      // Check the configured Peppol AP certificate
-      // * No caching
-      // * Use global certificate check mode
-      final ECertificateCheckResult eCheckResult = aAPCAChecker.checkCertificate (aAPCert,
-                                                                                  MetaAS4Manager.getTimestampMgr ()
-                                                                                                .getCurrentDateTime (),
-                                                                                  ETriState.FALSE,
-                                                                                  null);
-      if (eCheckResult.isInvalid ())
-      {
-        if (!"true".equals (System.getProperty ("phossap.internal.skip-peppol-certificate-check")))
-          throw new InitializationException ("The provided certificate is not a Peppol AP certificate. Check result: " +
-                                             eCheckResult);
-
-        LOGGER.error ("No Peppol certificate present - skipping for unit test only!");
-      }
-      LOGGER.info ("Successfully checked that the provided Peppol AP certificate is from the correct CA");
-
-      // Must be set independent on the enabled/disable status
-      Phase4PeppolDefaultReceiverConfiguration.setAPCAChecker (aAPCAChecker);
-    }
+    checkAndRegisterApCaChecker (aAPCert, ePeppolStage);
 
     // Check Seat ID configuration
     final String sSeatID = APCoreConfig.getPeppolOwnerSeatID ();
