@@ -1,0 +1,16 @@
+# EVAL-ONLY, NON-CONFORMANT image for phoss-ap (PP1a). Never for the real Peppol network.
+FROM eclipse-temurin:21-alpine
+ARG VERSION=0.13.1
+LABEL org.opencontainers.image.title="phoss-ap-eval" \
+      org.opencontainers.image.description="EVAL-ONLY NON-CONFORMANT phoss-ap fork (eval.trusted-ca.path)" \
+      org.opencontainers.image.source="https://github.com/NocoreNL/phoss-ap"
+RUN mkdir -p /ext /var/phoss-ap/data && chgrp -R 0 /ext /var/phoss-ap/data && chmod -R g=u /ext /var/phoss-ap/data
+VOLUME /tmp
+VOLUME /var/phoss-ap/data
+ENV LOADER_PATH=/ext
+ENV GLOBAL_DATAPATH=/var/phoss-ap/data/
+# Bake the jar built from THIS fork's source (not a published upstream release)
+COPY --chmod=0444 phoss-ap-webapp/target/phoss-ap-webapp-${VERSION}.jar /app.jar
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/urandom","-XX:InitialRAMPercentage=10","-XX:MinRAMPercentage=50","-XX:MaxRAMPercentage=80","-jar","/app.jar"]
