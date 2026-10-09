@@ -237,6 +237,13 @@ public final class APCoreConfig
     return _getConfig ().getAsString (APConfigurationProperties.PEPPOL_SMP_URL);
   }
 
+  /** EVAL-ONLY. @return the configured eval trust-anchor PEM path, or <code>null</code>. */
+  @Nullable
+  public static String getEvalTrustedCaPath ()
+  {
+    return _getConfig ().getAsString (APConfigurationProperties.EVAL_TRUSTED_CA_PATH);
+  }
+
   /**
    * @return The configured receiver check mode. Defaults to {@link EReceiverCheckMode#NONE}. Never
    *         <code>null</code>.

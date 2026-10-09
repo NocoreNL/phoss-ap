@@ -40,6 +40,10 @@ public final class APConfigurationProperties
   public static final String PEPPOL_RECEIVING_ENABLED = "peppol.receiving.enabled";
   public static final boolean PEPPOL_RECEIVING_ENABLED_DEFAULT = true;
   public static final String PEPPOL_SMP_URL = "peppol.smp.url";
+
+  // EVAL-ONLY (PP1a fork): when set on a non-production stage, the AP-certificate trust
+  // anchor is this PEM CA bundle instead of the official Peppol CA. NON-CONFORMANT.
+  public static final String EVAL_TRUSTED_CA_PATH = "eval.trusted-ca.path";
   public static final String PEPPOL_RECEIVER_CHECK_MODE = "peppol.receiver-check.mode";
   public static final String PEPPOL_DNS_SERVERS = "peppol.dns.servers";
   public static final String PEPPOL_IDENTIFIER_MODE = "peppol.identifier.mode";
