@@ -47,7 +47,6 @@ import com.helger.mime.CMimeType;
 import com.helger.peppol.reporting.api.PeppolReportingItem;
 import com.helger.peppol.sbdh.PeppolSBDHData;
 import com.helger.peppol.sbdh.PeppolSBDHDataReader;
-import com.helger.peppol.security.PeppolTrustedCA;
 import com.helger.peppol.servicedomain.EPeppolNetwork;
 import com.helger.peppol.sml.ISMLInfo;
 import com.helger.peppolid.IDocumentTypeIdentifier;
@@ -90,6 +89,7 @@ import com.helger.phoss.ap.core.APCoreConfig;
 import com.helger.phoss.ap.core.APCoreMetaManager;
 import com.helger.phoss.ap.core.CircuitBreakerManager;
 import com.helger.phoss.ap.core.SMPClientManager;
+import com.helger.phoss.ap.core.eval.EvalTrustAnchor;
 import com.helger.phoss.ap.core.helper.BackoffCalculator;
 import com.helger.phoss.ap.core.helper.CopyingInputStream;
 import com.helger.phoss.ap.core.helper.HashHelper;
@@ -186,6 +186,13 @@ public final class OutboundOrchestrator
   /** Private constructor to prevent instantiation of this utility class. */
   private OutboundOrchestrator ()
   {}
+
+  /** EVAL-AWARE. Same trust decision as the startup/inbound path. */
+  @NonNull
+  static TrustedCAChecker resolveApCaChecker (@NonNull final EPeppolNetwork ePeppolStage)
+  {
+    return EvalTrustAnchor.resolveApCaChecker (APCoreConfig.getEvalTrustedCaPath (), ePeppolStage);
+  }
 
   /**
    * Run all registered outbound document verifiers. A verifier that does not pass wins immediately
@@ -1271,8 +1278,7 @@ public final class OutboundOrchestrator
             final String sAS4ConversationID = MessageHelperMethods.createRandomConversationID ();
             aSendingReport.setAS4ConversationID (sAS4ConversationID);
 
-            final TrustedCAChecker aAPCAChecker = ePeppolStage.isProduction () ? PeppolTrustedCA.peppolProductionAP ()
-                                                                               : PeppolTrustedCA.peppolTestAP ();
+            final TrustedCAChecker aAPCAChecker = resolveApCaChecker (ePeppolStage);
 
             PeppolReportingItem aReportingItem = null;
             // The C1 participant identifier is the End User of an outbound transaction
