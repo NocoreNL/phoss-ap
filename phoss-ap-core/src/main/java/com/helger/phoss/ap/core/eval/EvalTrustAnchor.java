@@ -11,6 +11,8 @@ import java.nio.file.Paths;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -19,10 +21,13 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import com.helger.base.exception.InitializationException;
+import com.helger.base.state.ETriState;
 import com.helger.base.string.StringHelper;
 import com.helger.peppol.security.PeppolTrustedCA;
 import com.helger.peppol.servicedomain.EPeppolNetwork;
+import com.helger.security.certificate.ECertificateCheckResult;
 import com.helger.security.certificate.TrustedCAChecker;
+import com.helger.security.revocation.ERevocationCheckMode;
 
 /**
  * EVAL-ONLY. Resolves the AP-certificate {@link TrustedCAChecker}. Returns the stock
@@ -47,9 +52,28 @@ public final class EvalTrustAnchor
       return PeppolTrustedCA.peppolTestAP ();
 
     final List <X509Certificate> aEvalCerts = _loadPem (sPath);
-    return TrustedCAChecker.builder ()
-                           .trustedCACertificates (aEvalCerts.toArray (new X509Certificate [0]))
-                           .build ();
+    return new NoRevocationChecker (aEvalCerts.toArray (new X509Certificate [0]));
+  }
+
+  /**
+   * The stock checker honours the per-call revocation mode (falling back to the global default),
+   * so a builder-level mode does not help. Force NONE on every call: eval CAs publish no CRL/OCSP.
+   */
+  private static final class NoRevocationChecker extends TrustedCAChecker
+  {
+    NoRevocationChecker (@NonNull final X509Certificate... aCACerts)
+    {
+      super (ERevocationCheckMode.NONE, Duration.ofMinutes (1), 10, aCACerts);
+    }
+
+    @Override
+    public ECertificateCheckResult checkCertificate (@NonNull final X509Certificate aCert,
+                                                     @NonNull final OffsetDateTime aCheckDT,
+                                                     @NonNull final ETriState eCacheResult,
+                                                     @Nullable final ERevocationCheckMode eCheckMode)
+    {
+      return super.checkCertificate (aCert, aCheckDT, eCacheResult, ERevocationCheckMode.NONE);
+    }
   }
 
   @NonNull

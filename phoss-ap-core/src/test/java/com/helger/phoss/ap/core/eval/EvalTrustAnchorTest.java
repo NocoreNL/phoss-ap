@@ -79,4 +79,45 @@ public final class EvalTrustAnchorTest
     catch (final InitializationException ex)
     { /* expected */ }
   }
+
+  @Test
+  public void testEvalLeafAcceptedWithRealCallSiteArgs () throws Exception
+  {
+    final TrustedCAChecker aChecker = EvalTrustAnchor.resolveApCaChecker (CA, EPeppolNetwork.TEST);
+    final X509Certificate aLeaf = load ("eval-leaf.pem");
+    // Startup style: no cache, default/global revocation mode (null)
+    assertFalse (aChecker.checkCertificate (aLeaf, NOW, ETriState.FALSE, null).isInvalid ());
+    // Cached/default style
+    assertFalse (aChecker.checkCertificate (aLeaf, NOW, ETriState.UNDEFINED, null).isInvalid ());
+    assertFalse (aChecker.checkCertificate (aLeaf, NOW).isInvalid ());
+  }
+
+  private static void assertInitFails (final java.nio.file.Path aFile)
+  {
+    try
+    {
+      EvalTrustAnchor.resolveApCaChecker (aFile.toString (), EPeppolNetwork.TEST);
+      fail ("Expected InitializationException for " + aFile);
+    }
+    catch (final InitializationException ex)
+    { /* expected */ }
+  }
+
+  @Test
+  public void testGarbageAndEmptyPemThrow () throws Exception
+  {
+    final java.nio.file.Path aGarbage = java.nio.file.Files.createTempFile ("eval-garbage", ".pem");
+    final java.nio.file.Path aEmpty = java.nio.file.Files.createTempFile ("eval-empty", ".pem");
+    try
+    {
+      java.nio.file.Files.writeString (aGarbage, "this is not a certificate\n-----BEGIN CERTIFICATE-----\nZm9v\n-----END CERTIFICATE-----\n");
+      assertInitFails (aGarbage);
+      assertInitFails (aEmpty);
+    }
+    finally
+    {
+      java.nio.file.Files.deleteIfExists (aGarbage);
+      java.nio.file.Files.deleteIfExists (aEmpty);
+    }
+  }
 }
